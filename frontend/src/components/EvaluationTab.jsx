@@ -63,7 +63,7 @@ const EvaluationTab = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-5 gap-4 mb-8">
         <div className="bg-bgCard/40 border border-border rounded-xl p-4 flex flex-col items-center">
           <div className="text-textMuted text-sm mb-1">Total Tests</div>
           <div className="text-3xl font-bold">{summary?.total || 0}</div>
@@ -79,6 +79,10 @@ const EvaluationTab = () => {
         <div className="bg-bgCard/40 border border-accentBlue/30 rounded-xl p-4 flex flex-col items-center">
           <div className="text-accentBlue text-sm mb-1">Success Rate</div>
           <div className="text-3xl font-bold text-accentBlue">{((summary?.success_rate || 0) * 100).toFixed(1)}%</div>
+        </div>
+        <div className="bg-bgCard/40 border border-accentCyan/30 rounded-xl p-4 flex flex-col items-center">
+          <div className="text-accentCyan text-sm mb-1">Avg Quality Score</div>
+          <div className="text-3xl font-bold text-accentCyan">{(summary?.average_quality_score ?? 0).toFixed(2)}</div>
         </div>
       </div>
 
@@ -117,9 +121,11 @@ const EvaluationTab = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1 text-sm text-textMuted">
                     <div className="flex items-center gap-1">
-                      <Clock size={14} /> {(res.processing_time_ms / 1000).toFixed(1)}s
+                      <Clock size={14} /> {((res.processing_time_ms || 0) / 1000).toFixed(1)}s
                     </div>
-                    <div>Score: {res.score.toFixed(1)}</div>
+                    <div className={res.score >= 0.8 ? 'text-accentGreen' : res.score > 0 ? 'text-accentYellow' : 'text-accentRed'}>
+                      Score: {(res.score ?? 0).toFixed(2)}
+                    </div>
                   </div>
                 </div>
               ))}

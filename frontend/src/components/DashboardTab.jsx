@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { 
-  Activity, Server, Clock, CheckCircle2, Cpu, Database, 
-  HardDrive, Terminal, Settings, RefreshCw, Sliders, AlertCircle, Monitor 
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Activity, Server, CheckCircle2, Cpu, Database,
+  HardDrive, Terminal, RefreshCw, Sliders, AlertCircle, Monitor
 } from 'lucide-react';
 
 export default function DashboardTab() {
