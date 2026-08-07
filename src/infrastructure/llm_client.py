@@ -29,12 +29,13 @@ class LLMClient:
             base_url=config.OLLAMA_BASE_URL,
             model=config.MODEL,
             temperature=config.MODEL_TEMPERATURE,
+            seed=config.MODEL_SEED,
             num_predict=2048,
         )
         logger.info(
             "LLMClient initialised",
             extra={"model": config.MODEL, "base_url": config.OLLAMA_BASE_URL,
-                   "temperature": config.MODEL_TEMPERATURE},
+                   "temperature": config.MODEL_TEMPERATURE, "seed": config.MODEL_SEED},
         )
 
     @classmethod

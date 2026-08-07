@@ -17,7 +17,8 @@ class ResultReporter:
             f.write(f"**Total Tests**: {summary.get('total')}\n")
             f.write(f"**Passed**: {summary.get('passed')}\n")
             f.write(f"**Failed**: {summary.get('failed')}\n")
-            f.write(f"**Success Rate**: {summary.get('success_rate', 0.0) * 100:.1f}%\n\n")
+            f.write(f"**Success Rate**: {summary.get('success_rate', 0.0) * 100:.1f}%\n")
+            f.write(f"**Average Quality Score**: {summary.get('average_quality_score', 0.0):.3f} / 1.0\n\n")
             
             f.write("## Test Details\n\n")
             for task, task_results in results.get("tasks", {}).items():

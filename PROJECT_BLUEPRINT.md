@@ -236,21 +236,21 @@ Section 3: Recommended Talking Points for TAM
 ---
 
 ### TASK 4 — Design Note (15 marks)
-**Status:** `[ ] Not Started`
+**Status:** `[x] Done`
 
 **File:** `DESIGN_NOTE.md` (or in README) ~600 words covering:
-- `[ ]` Failure modes (top 3) + detection + mitigation
-- `[ ]` Latency vs quality trade-off (concrete example)
-- `[ ]` Data sensitivity / PII handling
-- `[ ]` Scaling to 10x ticket volume
+- `[x]` Failure modes (top 3) + detection + mitigation
+- `[x]` Latency vs quality trade-off (concrete example)
+- `[x]` Data sensitivity / PII handling
+- `[x]` Scaling to 10x ticket volume
 
 ---
 
 ### BONUS TASKS
-- `[ ]` +5 pts: Thin UI demo (Streamlit/Gradio)
-- `[ ]` +3 pts: Streaming output in Task 1 or 2
-- `[ ]` +2 pts: GitHub Actions CI running eval harness
-- `[ ]` +2 pts: Prompt versioning with version ID and changelog
+- `[ ]` +5 pts: Thin UI demo (Streamlit/Gradio) — frontend/ React app exists instead
+- `[ ]` +3 pts: Streaming output in Task 1 or 2 — SSE endpoint exists (`/api/v1/triage/stream`)
+- `[~]` +2 pts (partial): GitHub Actions CI (`.github/workflows/ci.yml`) — runs offline validator tests + import sanity + secret scan on every push. Does NOT run the full LLM-dependent `evaluation/run_eval.py`, since that requires a live Ollama server with pulled models, which isn't available on GitHub-hosted runners without a slow, fragile self-hosted setup.
+- `[x]` +2 pts: Prompt versioning with version ID and changelog
 
 ---
 

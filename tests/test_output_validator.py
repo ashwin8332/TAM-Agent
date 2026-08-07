@@ -39,6 +39,16 @@ missing = '{"product":"DataBridge Pro","urgency_tier":"P2","urgency_reasoning":"
 _, ok6, _ = validate_and_repair(missing)
 check("Missing fields rejected", not ok6)
 
+# 7. Category with concatenated urgency gets normalized ("Bug P1" -> "Bug")
+concat = '{"product":"DataBridge Pro","product_area":"Connectors","issue_category":"Bug P1","urgency_tier":"P1","urgency_reasoning":"prod down","recommended_team":"Senior Engineering Support","draft_first_response":"Hi thank you"}'
+parsed7, ok7, err7 = validate_and_repair(concat)
+check("Category normalization (Bug P1 -> Bug)", ok7 and parsed7.get("issue_category") == "Bug", err7)
+
+# 8. Genuinely invalid category still rejected
+bad_cat = '{"product":"DataBridge Pro","product_area":"Connectors","issue_category":"Not A Real Category","urgency_tier":"P1","urgency_reasoning":"x","recommended_team":"T1","draft_first_response":"Hi"}'
+_, ok8, _ = validate_and_repair(bad_cat)
+check("Invalid category rejected", not ok8)
+
 print()
 passed = sum(results)
 total = len(results)

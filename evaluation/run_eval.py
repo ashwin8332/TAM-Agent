@@ -25,7 +25,7 @@ async def run_task1(cases, evaluator):
             result = triage_uc.execute(
                 raw_input=json.dumps(inp)
             )
-            result_dict = result.model_dump()
+            result_dict = result.to_dict()
             
             # Evaluate
             eval_res = evaluator.evaluate(result_dict, case["expected_criteria"])
@@ -71,11 +71,11 @@ async def run_task2(cases, evaluator):
                 "score": 1.0 if passed else 0.0,
                 "details": "Outputs are identical" if passed else "Outputs diverge"
             }
-            result_dict = res1.model_dump()
+            result_dict = res1.to_dict()
         else:
             try:
                 result = await account_uc.execute(account_id=acc_id)
-                result_dict = result.model_dump()
+                result_dict = result.to_dict()
                 eval_res = evaluator.evaluate(result_dict, case["expected_criteria"])
             except Exception as e:
                 eval_res = {
@@ -115,13 +115,15 @@ async def main():
     total = len(all_results)
     passed = sum(1 for r in all_results if r["passed"])
     failed = total - passed
-    
+    avg_quality_score = sum(r["score"] for r in all_results) / total if total > 0 else 0.0
+
     final_report = {
         "summary": {
             "total": total,
             "passed": passed,
             "failed": failed,
-            "success_rate": passed / total if total > 0 else 0
+            "success_rate": passed / total if total > 0 else 0,
+            "average_quality_score": round(avg_quality_score, 4)
         },
         "tasks": {
             "Task 1 (Triage)": t1_results,

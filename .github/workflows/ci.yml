@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Offline output-validator tests (no LLM required)
+        run: PYTHONPATH=. python tests/test_output_validator.py
+
+      - name: Import sanity check (catches missing deps / broken imports)
+        run: |
+          python -c "import src.presentation.main"
+          python -c "import evaluation.run_eval"
+
+      - name: Verify no secrets committed
+        run: |
+          if git grep -IlE "sk-[a-zA-Z0-9]{20,}|AKIA[0-9A-Z]{16}" -- . ':!*.md'; then
+            echo "Potential secret found!"; exit 1
+          fi
+          echo "No secrets detected."
