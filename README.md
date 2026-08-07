@@ -1,6 +1,6 @@
 # TAM AI Platform
 
-> **US Delivery Internship — Technical Task Round**
+> **US Delivery Internship — Technical Task Round**  
 > Production-grade AI for Technical Support & TAM Teams
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
@@ -10,236 +10,184 @@
 
 ---
 
-## Overview
+## 🏗️ System Architecture
 
-This platform delivers two AI-powered features:
+The platform consists of a React/Vite SPA frontend, a FastAPI backend server serving REST and SSE endpoints, a FAISS vector database for product knowledge retrieval, and local Ollama model engines orchestrated via LangGraph.
 
-| Task | Feature | Marks |
-|------|---------|-------|
-| Task 1 | Intelligent Ticket Triage Agent | 30 |
-| Task 2 | TAM Account Health Summariser | 25 |
-| Task 3 | Evaluation Harness | 20 |
-| Task 4 | Design Note | 15 |
-| Bonus | Streaming + UI + CI + Prompt Versioning | 10 |
+### Overall System Flow
+```mermaid
+graph TD
+    subgraph Client ["Client Layer"]
+        FE[React + Vite Frontend]
+    end
+    
+    subgraph API ["API & Application Layer"]
+        BE[FastAPI Web Server]
+        USE[Application Use Cases]
+        PM[Prompt Manager]
+        DL[Data Loader]
+    end
+    
+    subgraph Orchestration ["Orchestration Layer"]
+        LG[LangGraph State Machines]
+        T1[Triage Graph]
+        T2[Account Brief Graph]
+    end
+    
+    subgraph Infrastructure ["Infrastructure Layer"]
+        OL[Ollama Local LLM Client]
+        FS[FAISS Vector Store]
+        EM[Embedding Service]
+    end
 
-**Architecture:** LangGraph orchestration · Ollama (local LLM) · FAISS vector store · FastAPI · Domain-Driven Design
+    FE <-->|REST API / SSE| BE
+    BE <--> USE
+    USE <--> LG
+    LG --> T1
+    LG --> T2
+    T1 --> OL
+    T1 --> FS
+    T2 --> OL
+    FS --> EM
+```
+
+### Domain-Driven Design (DDD) Layers
+```mermaid
+graph LR
+    Pres[Presentation Layer<br/>FastAPI Routers & Pydantic Schemas] --> App[Application Layer<br/>Triage & Brief Use Cases]
+    App --> Dom[Domain Layer<br/>Entities & Interfaces]
+    Inf[Infrastructure Layer<br/>Ollama Client / FAISS Store / Data Loader] --> Dom
+```
 
 ---
 
-## Quick Setup
+## ⚡ LangGraph AI Pipelines
 
-### Prerequisites
-
-```bash
-# 1. Install Ollama
-# https://ollama.ai/download
-
-# 2. Pull required models
-ollama pull qwen2.5
-ollama pull nomic-embed-text
-
-# 3. Start Ollama
-ollama serve
+### Task 1: Intelligent Ticket Triage Flow
+The triage agent routes raw ticket payloads through a validation loop. If the LLM generates malformed outputs or invalid categories, it enters a retry loop with feedback.
+```mermaid
+graph TD
+    Start([Input Ticket]) --> Val[Input Validation]
+    Val --> Ret[FAISS Retrieval]
+    Ret --> Comp[Context Compression]
+    Comp --> Prom[Prompt Construction]
+    Prom --> LLM[LLM Generation]
+    LLM --> OutVal[Output Validation]
+    
+    OutVal -- Malformed JSON / Invalid Enum --> Retry{Retry Count < 3?}
+    Retry -- Yes --> RegNode[Retry Node & Feedback]
+    RegNode --> Prom
+    Retry -- No --> Fallback[Fallback Default Output]
+    Fallback --> Conf[Confidence Calculation]
+    
+    OutVal -- Valid JSON --> Conf
+    Conf --> Log[Observability Logging]
+    Log --> End([Structured Output])
 ```
 
-### Installation
+---
 
+## 🚀 Quick Setup & Installation
+
+### Prerequisites
+1. **Ollama**: Download and install [Ollama](https://ollama.ai/download).
+2. **Pull Models**: Run the following commands to download the classification and embedding models:
+   ```bash
+   ollama pull qwen2.5
+   ollama pull nomic-embed-text
+   ```
+3. **Start Ollama**: Make sure Ollama is running (`ollama serve` or run the Ollama desktop app).
+
+### Installation
+From the project root directory:
 ```bash
-# From the project root (TAM/ directory)
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# Copy and configure environment
+# 2. Configure environment
 cp .env.example .env
-# Edit .env if you want to change the model or paths
 
-# Build the FAISS knowledge base index (run once)
+# 3. Build FAISS index (ingests local MD knowledge base files)
 python scripts/build_index.py
 ```
 
-### Start the API Server
+### Starting the Applications
 
+#### 1. Backend Server (FastAPI)
 ```bash
-uvicorn src.presentation.main:app --reload --host 0.0.0.0 --port 8000
-```
+# Ensure project root is in PYTHONPATH
+$env:PYTHONPATH = "C:\Users\hp\OneDrive\Desktop\TAM"
 
-Open **http://localhost:8000/docs** for the interactive API documentation.
+# Start the uvicorn API server
+python -m uvicorn src.presentation.main:app --host 0.0.0.0 --port 8050
+```
+Open **http://localhost:8050/docs** for the Swagger interactive documentation.
+
+#### 2. Frontend Development Server (React + Vite)
+```bash
+cd frontend
+npm run dev
+```
+Starts Vite dev server on **http://localhost:5173** and proxies `/api` to the backend.
+
+#### 3. Production Build
+```bash
+cd frontend
+npm run build
+```
+FastAPI serves the built frontend from `frontend/dist` directly at **http://localhost:8050/**.
 
 ---
 
-## Sample Run — Task 1 (Ticket Triage)
+## 🗄️ Database & Schema Reference
 
-### Structured JSON input
+### tickets.json Schema
+| Field | Type | Description / Key Values |
+|---|---|---|
+| `ticket_id` | string | Unique ticket identifier |
+| `product` | string | DataBridge Pro, CloudSync, AnalyticsHub, SecureVault, WorkflowEngine |
+| `category` | enum | Bug, Feature Request, How-To, Performance, Billing, Integration, Onboarding, Data Loss |
+| `urgency` | enum | P1 (critical ~5%), P2 (major ~20%), P3 (moderate ~45%), P4 (low ~30%) |
+| `status` | enum | Open, In Progress, Pending Customer, Resolved, Closed |
 
-```bash
-curl -X POST http://localhost:8000/api/v1/triage \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subject": "DataBridge pipeline stopped — ERR_CONNECTION_TIMEOUT",
-    "body": "Hi team,\n\nOur DataBridge Pro Connectors pipeline has been failing since this morning. Error: ERR_CONNECTION_TIMEOUT after 30s. This is impacting 47 users in Engineering. We have tried restarting but the issue persists.\n\nEnvironment: Production\nVersion: 3.1.2",
-    "account_id": "ACC-3847",
-    "plan_tier": "Enterprise"
-  }'
-```
-
-### Plain text input
-
-```bash
-curl -X POST http://localhost:8000/api/v1/triage/text \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Our SSO login is broken. Users are getting SAML_ASSERTION_EXPIRED errors. Nobody can log in to SecureVault. This is blocking our entire team."}'
-```
-
-### Expected output shape
-
-```json
-{
-  "ticket_id": "AUTO-550E8400",
-  "product": "DataBridge Pro",
-  "product_area": "Connectors",
-  "issue_category": "Bug",
-  "urgency_tier": "P2",
-  "urgency_reasoning": "Production pipeline failing with ERR_CONNECTION_TIMEOUT. 47 Engineering users impacted. No workaround available for pipeline processing.",
-  "recommended_team": "Senior Engineering Support",
-  "kb_match": {
-    "doc_id": "products/databridge-pro",
-    "doc_title": "DataBridge Pro — Product Reference",
-    "relevant_section": "Pipeline stopped processing",
-    "relevance_score": 0.92
-  },
-  "draft_first_response": "Hi,\n\nThank you for contacting support...",
-  "classification_reasoning": "ERR_CONNECTION_TIMEOUT in DataBridge Pro Connectors is a known network/source issue. Production impact with 47 users = P2.",
-  "confidence": 0.87,
-  "retrieved_docs": ["products/databridge-pro", "troubleshooting/performance-and-integrations"],
-  "processing_time_ms": 3241.5,
-  "request_id": "550e8400-e29b-41d4-a716-446655440000",
-  "prompt_version": "1.0.0"
-}
-```
-
-### Streaming (SSE)
-
-```bash
-curl -X POST http://localhost:8000/api/v1/triage/stream \
-  -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{"subject": "Billing question", "body": "Why am I being charged for 50 seats when only 30 users are active?"}'
-```
+### accounts.json Schema
+| Field | Type | Description / Key Values |
+|---|---|---|
+| `account_id` | string | Unique account identifier |
+| `health_status`| enum | Healthy, At Risk, Churning, New |
+| `usage_trend` | enum | Increasing, Stable, Declining, Inactive |
+| `escalation_notes`| array | Churn signals containing competitor keywords, cancels, or frustrations |
 
 ---
 
-## Sample Run — Task 2 (Account Health Summariser)
-
-```bash
-curl http://localhost:8000/api/v1/account/ACC-3336/brief
-```
-
-### Response shape
-
-```json
-{
-  "account_id": "ACC-3336",
-  "executive_summary": "<3-5 sentence account health summary synthesized from account_data + last-90-day tickets>",
-  "risks_and_issues": "<open risks with a verbatim quote from the ticket/escalation note backing each flagged issue>",
-  "talking_points": "<account-specific TAM talking points, quoting churn signals directly>",
-  "churn_risk_flags": ["Health Status is At Risk", "..."],
-  "request_id": "7c1e2b3a-...",
-  "processing_time_ms": 4210.3
-}
-```
-
-For a real, reproducible example generated by this exact code against the supplied dataset,
-see `eval_report.md` / `eval_report.json` (generated by `python evaluation/run_eval.py`,
-which exercises `ACC-3336`, `ACC-5421`, `ACC-6666`, and other accounts from `data/accounts.json`).
-Account IDs come from the supplied `data/accounts.json`; unknown IDs return a graceful
-`"Account not found."` brief instead of an error (see `evaluation/test_cases/task2_cases.json` TC-2-05).
-
----
-
-## API Endpoints
+## 📡 API Endpoints
 
 | Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | Service info |
+|---|---|---|
+| `GET` | `/` | Service info & Landing |
 | `GET` | `/health` | Health check + index status |
 | `GET` | `/docs` | Interactive Swagger UI |
 | `POST` | `/api/v1/triage` | Structured JSON triage |
 | `POST` | `/api/v1/triage/text` | Plain text triage |
 | `POST` | `/api/v1/triage/stream` | Streaming SSE triage |
+| `GET` | `/api/v1/account/{id}/brief` | Account health brief |
 | `POST` | `/api/v1/index/rebuild` | Rebuild FAISS index |
 
 ---
 
-## Architecture
+## 📝 Design Note (Task 4 Summary)
 
-```
-TAM/
-├── src/
-│   ├── infrastructure/      # Ollama, FAISS, data loaders (replaceable)
-│   ├── domain/              # Pure entities — no infra dependencies
-│   ├── application/         # Use cases — all business logic lives here
-│   ├── ai/
-│   │   ├── graphs/          # LangGraph state machines
-│   │   ├── nodes/           # 9 independently testable pipeline nodes
-│   │   ├── retriever.py     # FAISS retrieval
-│   │   └── output_validator.py  # JSON validation + json-repair
-│   ├── presentation/        # FastAPI routes (thin controllers only)
-│   └── observability/       # Structured JSON logging + tracing
-├── prompts/                 # Versioned prompt templates (.md files)
-├── data/                    # PROVIDED — tickets.json + accounts.json
-├── knowledge-base/          # PROVIDED — 9 KB markdown files
-└── scripts/                 # build_index.py
-```
-
-### LangGraph Pipeline (Task 1)
-
-```
-input_validation → retrieval → context_compression → prompt_construction
-  → llm_generation → output_validation
-    ├── [valid] → confidence_calculation → logging_node → END
-    ├── [retry < MAX] → retry_node → prompt_construction (loop)
-    └── [retries exhausted] → logging_node → END
-```
+For the complete architectural design note, refer to [DESIGN_NOTE.md](DESIGN_NOTE.md). It covers:
+* **Production Failure Modes**: Schema-validation repair loops, KB Match hallucination containment, and model server outage fallbacks.
+* **Latency vs. Quality**: Balancing retrieval context window size (`top_k=5` chunks) vs. CPU generation latency.
+* **Data Security & PII**: Enforcing fully local execution via Ollama and FAISS.
+* **10x Scale Roadmap**: Transitioning to asynchronous task brokers (Celery + Redis), GPU model server clusters, and distributed vector stores.
 
 ---
 
-## Switching Models
-
-Change the `MODEL` env var — no code changes needed:
-
-```bash
-MODEL=gemma3        # Google Gemma 3
-MODEL=mistral       # Mistral
-MODEL=llama3.2      # Meta Llama 3.2
-MODEL=qwen2.5       # Qwen 2.5 (default)
-```
-
----
-
-## Design Note
-
-See [DESIGN_NOTE.md](DESIGN_NOTE.md) for the ~600-word engineering design note covering:
-- Failure modes & mitigations
-- Latency vs quality trade-offs
-- PII handling
-- Scaling to 10× ticket volume
-
----
-
-## Evaluation
-
+## 🧪 Evaluation Harness (Task 3)
+Run the automated evaluation suite to generate validation reports:
 ```bash
 python evaluation/run_eval.py
-# Outputs: eval_report.json + eval_report.md
 ```
-
----
-
-## Environment Variables
-
-See [`.env.example`](.env.example) for all required variables.
-
-**Never commit `.env` to version control.**
-
----
-
-*Built for the US Delivery Internship Technical Task Round.*
+This writes reports to `eval_report.json` and `eval_report.md`.
