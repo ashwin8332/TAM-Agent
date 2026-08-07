@@ -77,20 +77,15 @@ app.add_middleware(
 
 # ── System endpoints ───────────────────────────────────────────────────────────
 
-@app.get("/", tags=["system"])
-async def root():
-    return {
-        "service": "TAM AI Platform",
-        "task": "Task 1 — Intelligent Ticket Triage",
-        "docs": "/docs",
-        "health": "/health",
-        "triage": "/api/v1/triage",
-    }
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
+# Serve React Vite static build
+_REACT_BUILD_DIR = os.path.join(_PROJECT_ROOT, "frontend", "dist")
 
-@app.get("/health", response_model=HealthResponse, tags=["system"])
-async def health_check():
-    """Health check — confirms FAISS index is loaded and Ollama is configured."""
+@app.get("/health", tags=["system"])
+async def health_check_route():
+    # Health endpoint moved here so it isn't swallowed by static serving
     from src.infrastructure.vector_store import VectorStore
     try:
         _ = VectorStore.get_instance().store
@@ -98,14 +93,28 @@ async def health_check():
     except Exception:
         index_ready = False
 
-    return HealthResponse(
-        status="ok" if index_ready else "degraded",
-        model=config.MODEL,
-        embedding_model=config.EMBEDDING_MODEL,
-        index_ready=index_ready,
-    )
+    return {
+        "status": "ok" if index_ready else "degraded",
+        "model": config.MODEL,
+        "embedding_model": config.EMBEDDING_MODEL,
+        "index_ready": index_ready,
+    }
 
-
-# ── Feature routers ────────────────────────────────────────────────────────────
-
+# Ensure the feature routers are loaded BEFORE the catch-all static serving
 app.include_router(triage_router)
+
+# Mount Vite Assets
+if os.path.exists(_REACT_BUILD_DIR):
+    # Mount the assets folder which contains the js/css
+    app.mount("/assets", StaticFiles(directory=os.path.join(_REACT_BUILD_DIR, "assets")), name="assets")
+
+# Serve the index.html on root and all other unknown paths (for SPA routing)
+@app.get("/{full_path:path}", tags=["system"])
+async def serve_react_app(full_path: str):
+    index_path = os.path.join(_REACT_BUILD_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"error": "Frontend build not found. Run npm run build in frontend directory."}
+
+
+
