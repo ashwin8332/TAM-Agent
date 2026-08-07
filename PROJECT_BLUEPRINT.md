@@ -582,6 +582,43 @@ Phase 5 — Submission (30min)
   Push to GitHub
 ```
 
+```
+
+---
+
+## HOW TO RUN THE PROJECT
+
+The platform consists of a FastAPI backend and a React/Vite frontend. They can be run seamlessly using the following instructions:
+
+### 1. Backend (FastAPI + LangGraph)
+The backend handles the AI orchestration, vector retrieval, and serves the production-built React app.
+
+```bash
+# Ensure your environment is active (if applicable) and PYTHONPATH is set
+$env:PYTHONPATH = "C:\Users\hp\OneDrive\Desktop\TAM"
+
+# Start the Uvicorn server on port 8050
+python -m uvicorn src.presentation.main:app --host 0.0.0.0 --port 8050
+```
+*Note: The FastAPI app is configured to serve the `frontend/dist` directory on the root path `/` automatically if it has been built.*
+
+### 2. Frontend (React + Vite)
+For development with Hot Module Replacement (HMR) and active proxying to the backend API:
+
+```bash
+cd frontend
+npm run dev
+```
+*This starts the Vite dev server (usually on `http://localhost:5173`) and proxies `/api` requests to the FastAPI backend running on port `8050`.*
+
+### 3. Production Build
+To create a production build of the frontend that FastAPI will serve directly:
+```bash
+cd frontend
+npm run build
+```
+Once built, you only need to run the Uvicorn backend, and the fully integrated UI will be accessible at `http://localhost:8050/`.
+
 ---
 
 ## HOW TO USE THIS FILE WITH ANOTHER AI
