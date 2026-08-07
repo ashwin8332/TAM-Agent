@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Activity, TicketCheck } from 'lucide-react';
+import { Activity, TicketCheck, Building2 } from 'lucide-react';
 import TriageTab from './components/TriageTab';
 import DashboardTab from './components/DashboardTab';
+import AccountBriefTab from './components/AccountBriefTab';
 
 function App() {
   const [activeTab, setActiveTab] = useState('triage');
@@ -30,6 +31,14 @@ function App() {
           </button>
           
           <button
+            onClick={() => setActiveTab('account')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'account' ? 'bg-accentBlue/10 text-accentBlue font-medium' : 'hover:bg-bgCardHover text-textMuted hover:text-textMain'}`}
+          >
+            <Building2 size={20} />
+            Account Briefs
+          </button>
+          
+          <button
             onClick={() => setActiveTab('dashboard')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-accentBlue/10 text-accentBlue font-medium' : 'hover:bg-bgCardHover text-textMuted hover:text-textMain'}`}
           >
@@ -52,6 +61,7 @@ function App() {
       <main className="flex-1 overflow-auto bg-gradient-to-br from-bgMain to-[#020617]">
         {activeTab === 'triage' && <TriageTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'account' && <AccountBriefTab />}
       </main>
     </div>
   );

@@ -129,3 +129,25 @@ class TriageResult:
             "request_id": self.request_id,
             "prompt_version": self.prompt_version,
         }
+
+
+@dataclass
+class AccountBrief:
+    account_id: str
+    executive_summary: str
+    risks_and_issues: str
+    talking_points: str
+    churn_risk_flags: List[str]
+    request_id: str
+    processing_time_ms: float
+
+    def to_dict(self) -> Dict:
+        return {
+            "account_id": self.account_id,
+            "executive_summary": self.executive_summary,
+            "risks_and_issues": self.risks_and_issues,
+            "talking_points": self.talking_points,
+            "churn_risk_flags": self.churn_risk_flags,
+            "request_id": self.request_id,
+            "processing_time_ms": round(self.processing_time_ms, 2),
+        }
