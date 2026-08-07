@@ -1,0 +1,105 @@
+{
+  "summary": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2,
+    "success_rate": 0.8,
+    "average_quality_score": 0.85
+  },
+  "tasks": {
+    "Task 1 (Triage)": [
+      {
+        "test_id": "TC-1-01",
+        "type": "Normal",
+        "description": "P1 DataBridge timeout ticket \u2192 Urgency=P1, category=Bug",
+        "passed": false,
+        "score": 0.5,
+        "details": "Expected urgency_tier=P1, got P3",
+        "processing_time_ms": 166559.71
+      },
+      {
+        "test_id": "TC-1-02",
+        "type": "Normal",
+        "description": "Billing question \u2192 category=Billing, team=Billing",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 134594.89
+      },
+      {
+        "test_id": "TC-1-03",
+        "type": "Normal",
+        "description": "SSO error ticket \u2192 KB match=authentication-sso.md",
+        "passed": false,
+        "score": 0.0,
+        "details": "Expected kb_match.doc_id to contain authentication-sso",
+        "processing_time_ms": 124515.36
+      },
+      {
+        "test_id": "TC-1-04",
+        "type": "Normal",
+        "description": "Feature request \u2192 category=Feature Request",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 132469.46
+      },
+      {
+        "test_id": "TC-1-05",
+        "type": "Adversarial",
+        "description": "Ambiguous ticket \u2192 confidence<0.7, no hallucination",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 96194.71
+      }
+    ],
+    "Task 2 (Account Brief)": [
+      {
+        "test_id": "TC-2-01",
+        "type": "Normal",
+        "description": "Healthy account \u2192 No churn flags",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 81.39
+      },
+      {
+        "test_id": "TC-2-02",
+        "type": "Normal",
+        "description": "At Risk account \u2192 Risk section non-empty",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 55438.87
+      },
+      {
+        "test_id": "TC-2-03",
+        "type": "Normal",
+        "description": "Account with P1 tickets \u2192 Escalation signal detected",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 66567.33
+      },
+      {
+        "test_id": "TC-2-04",
+        "type": "Normal",
+        "description": "Determinism test \u2192 2 runs produce identical output",
+        "passed": true,
+        "score": 1.0,
+        "details": "Outputs are identical",
+        "processing_time_ms": 25190.25
+      },
+      {
+        "test_id": "TC-2-05",
+        "type": "Adversarial",
+        "description": "account_id not in accounts.json \u2192 Graceful fallback",
+        "passed": true,
+        "score": 1.0,
+        "details": "All criteria met.",
+        "processing_time_ms": 4.92
+      }
+    ]
+  }
+}

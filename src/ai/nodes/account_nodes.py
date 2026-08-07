@@ -2,6 +2,8 @@ import json
 import time
 from typing import Dict, Any, List
 
+from json_repair import repair_json
+
 from src.ai.account_state import AccountBriefState
 from src.infrastructure.data_loader import DataLoader
 from src.infrastructure.llm_client import LLMClient
@@ -50,14 +52,23 @@ def detect_churn_signals(state: AccountBriefState) -> Dict[str, Any]:
             
         if p1_count > 2:
             flags.append(f"High number of P1 tickets in last 30d ({p1_count})")
-            
+
         if nps is not None and nps < 5:
             flags.append(f"Low NPS Score ({nps})")
-            
+
         churn_keywords = ["competitor", "cancel", "churn", "frustration", "champion left", "evaluating alternatives"]
         for note in notes:
-            if any(kw in note.lower() for kw in churn_keywords):
+            note_lower = note.lower()
+            if any(kw in note_lower for kw in churn_keywords):
                 flags.append("Escalation note contains churn keyword(s)")
+                quotes.append(note)
+            # Escalation notes sometimes narrate P1 incident history in prose
+            # (e.g. "3 consecutive P1 tickets in the last 30 days") even when
+            # the structured p1_tickets_last_30d counter wasn't updated to
+            # match — surface that as its own signal instead of relying only
+            # on the numeric field, which can lag or disagree with the notes.
+            if "p1" in note_lower and not (p1_count and p1_count > 2):
+                flags.append(f"Escalation note references P1 incident history: \"{note}\"")
                 quotes.append(note)
                 
     # Also check tickets for direct quotes if needed
@@ -113,7 +124,10 @@ def generate_brief_sections(state: AccountBriefState) -> Dict[str, Any]:
     )
     
     llm = LLMClient.get_instance()
-    # Task 2 requires deterministic output, temperature=0, seed=42 are already configured in .env and LLMClient
+    # Task 2 requires deterministic output. LLMClient pins temperature=0 and a
+    # fixed seed (src/infrastructure/llm_client.py), which is the primary
+    # determinism control here; final section text is also fully derived from
+    # the account_data/recent_tickets/churn_signals passed in above.
     raw_output = llm.generate(prompt=prompt)
     
     timings = state.get("node_timings", {})
@@ -130,37 +144,61 @@ def validate_account_brief(state: AccountBriefState) -> Dict[str, Any]:
     start = time.perf_counter()
     raw_output = state.get("raw_llm_output", "")
     errors = state.get("errors", [])
-    
+    churn_flags = state.get("churn_risk_flags", [])
+    quotes = state.get("escalation_quotes", [])
+
     brief = None
     validated = False
-    
+
     if raw_output:
+        # Extract JSON block if surrounded by markdown
+        clean_output = raw_output
+        if "```json" in clean_output:
+            clean_output = clean_output.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_output:
+            clean_output = clean_output.split("```")[1].strip()
+
+        brief_dict = None
         try:
-            # Extract JSON block if surrounded by markdown
-            clean_output = raw_output
-            if "```json" in clean_output:
-                clean_output = clean_output.split("```json")[1].split("```")[0].strip()
-            elif "```" in clean_output:
-                clean_output = clean_output.split("```")[1].strip()
-                
             brief_dict = json.loads(clean_output)
-            
-            # Reconstruct to ensure keys
+        except Exception:
+            # Fall back to json-repair for malformed LLM JSON, same recovery
+            # path Task 1's output_validator uses, before giving up.
+            try:
+                brief_dict = json.loads(repair_json(clean_output))
+                logger.debug("Account brief JSON repair succeeded")
+            except Exception as e:
+                errors.append(f"JSON Parsing failed: {str(e)}")
+                logger.error("Failed to parse Account Brief output", extra={"error": str(e), "raw": raw_output})
+
+        if brief_dict is not None and isinstance(brief_dict, dict):
+            risks = str(brief_dict.get("risks_and_issues", "")).strip()
+            if not risks:
+                # Never silently return an empty risk section when rule-based
+                # churn detection actually found something — synthesize a
+                # minimal, evidence-backed fallback instead of trusting the
+                # LLM's (possibly empty) output blindly.
+                if churn_flags:
+                    lines = [f"- {flag}" for flag in churn_flags]
+                    if quotes:
+                        lines.append("Supporting evidence: " + " | ".join(f'"{q}"' for q in quotes))
+                    risks = "\n".join(lines)
+                else:
+                    risks = "No significant open risks identified in the last 90 days."
+
             brief = {
                 "executive_summary": brief_dict.get("executive_summary", ""),
-                "risks_and_issues": brief_dict.get("risks_and_issues", ""),
+                "risks_and_issues": risks,
                 "talking_points": brief_dict.get("talking_points", "")
             }
             validated = True
-        except Exception as e:
-            errors.append(f"JSON Parsing failed: {str(e)}")
-            logger.error("Failed to parse Account Brief output", extra={"error": str(e), "raw": raw_output})
+        else:
             brief = {
                 "executive_summary": "Failed to generate brief.",
                 "risks_and_issues": "Parsing error.",
                 "talking_points": "Please retry."
             }
-            
+
     timings = state.get("node_timings", {})
     timings["validate_account_brief"] = (time.perf_counter() - start) * 1000
     
