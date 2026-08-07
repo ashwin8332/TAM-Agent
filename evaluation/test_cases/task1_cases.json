@@ -1,0 +1,74 @@
+[
+  {
+    "test_id": "TC-1-01",
+    "type": "Normal",
+    "description": "P1 DataBridge timeout ticket \u2192 Urgency=P1, category=Bug",
+    "input": {
+      "subject": "DataBridge Pro pipeline stopped",
+      "body": "Hi team, our DataBridge Pro pipeline has been failing since this morning. Error: ERR_CONNECTION_TIMEOUT after 30s. This is impacting 47 users in Engineering.",
+      "account_id": "ACC-3847",
+      "plan_tier": "Enterprise"
+    },
+    "expected_criteria": {
+      "urgency_tier": "P1",
+      "issue_category": "Bug"
+    }
+  },
+  {
+    "test_id": "TC-1-02",
+    "type": "Normal",
+    "description": "Billing question \u2192 category=Billing, team=Billing",
+    "input": {
+      "subject": "Question about our invoice",
+      "body": "We need to add 5 more seats to our Professional plan, but we want to know if it will be pro-rated on our next invoice. Please let us know.",
+      "account_id": "ACC-1234",
+      "plan_tier": "Professional"
+    },
+    "expected_criteria": {
+      "issue_category": "Billing",
+      "recommended_team": "Billing Team"
+    }
+  },
+  {
+    "test_id": "TC-1-03",
+    "type": "Normal",
+    "description": "SSO error ticket \u2192 KB match=authentication-sso.md",
+    "input": {
+      "subject": "Can't login via SSO",
+      "body": "Our users are seeing SAML_ASSERTION_EXPIRED when trying to log into SecureVault. Is there an issue with the Identity Provider sync?",
+      "account_id": "ACC-5555",
+      "plan_tier": "Enterprise"
+    },
+    "expected_criteria": {
+      "kb_doc_id_contains": "authentication-sso"
+    }
+  },
+  {
+    "test_id": "TC-1-04",
+    "type": "Normal",
+    "description": "Feature request \u2192 category=Feature Request",
+    "input": {
+      "subject": "Dark mode for AnalyticsHub",
+      "body": "It would be great if AnalyticsHub dashboards supported dark mode for our wall monitors.",
+      "account_id": "ACC-1111",
+      "plan_tier": "Starter"
+    },
+    "expected_criteria": {
+      "issue_category": "Feature Request"
+    }
+  },
+  {
+    "test_id": "TC-1-05",
+    "type": "Adversarial",
+    "description": "Ambiguous ticket \u2192 confidence<0.7, no hallucination",
+    "input": {
+      "subject": "It is broken",
+      "body": "Please fix it immediately. Nothing works.",
+      "account_id": "ACC-9999",
+      "plan_tier": "Starter"
+    },
+    "expected_criteria": {
+      "confidence_lt": 0.7
+    }
+  }
+]

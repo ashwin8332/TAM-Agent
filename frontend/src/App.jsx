@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Activity, TicketCheck, Building2 } from 'lucide-react';
+import { Activity, TicketCheck, Building2, TestTube2 } from 'lucide-react';
 import TriageTab from './components/TriageTab';
 import DashboardTab from './components/DashboardTab';
 import AccountBriefTab from './components/AccountBriefTab';
+import EvaluationTab from './components/EvaluationTab';
 
 function App() {
   const [activeTab, setActiveTab] = useState('triage');
@@ -45,6 +46,14 @@ function App() {
             <Activity size={20} />
             System Dashboard
           </button>
+
+          <button
+            onClick={() => setActiveTab('evaluation')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'evaluation' ? 'bg-accentBlue/10 text-accentBlue font-medium' : 'hover:bg-bgCardHover text-textMuted hover:text-textMain'}`}
+          >
+            <TestTube2 size={20} />
+            Evaluation Harness
+          </button>
         </nav>
 
         <div className="p-4 border-t border-border">
@@ -62,6 +71,7 @@ function App() {
         {activeTab === 'triage' && <TriageTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'account' && <AccountBriefTab />}
+        {activeTab === 'evaluation' && <EvaluationTab />}
       </main>
     </div>
   );

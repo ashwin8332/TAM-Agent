@@ -1,0 +1,58 @@
+[
+  {
+    "test_id": "TC-2-01",
+    "type": "Normal",
+    "description": "Healthy account \u2192 No churn flags",
+    "input": {
+      "account_id": "ACC-5421"
+    },
+    "expected_criteria": {
+      "churn_flags_empty": true
+    }
+  },
+  {
+    "test_id": "TC-2-02",
+    "type": "Normal",
+    "description": "At Risk account \u2192 Risk section non-empty",
+    "input": {
+      "account_id": "ACC-6666"
+    },
+    "expected_criteria": {
+      "risks_and_issues_non_empty": true
+    }
+  },
+  {
+    "test_id": "TC-2-03",
+    "type": "Normal",
+    "description": "Account with P1 tickets \u2192 Escalation signal detected",
+    "input": {
+      "account_id": "ACC-3336"
+    },
+    "expected_criteria": {
+      "has_churn_flag_containing": "P1"
+    }
+  },
+  {
+    "test_id": "TC-2-04",
+    "type": "Normal",
+    "description": "Determinism test \u2192 2 runs produce identical output",
+    "input": {
+      "account_id": "ACC-3336",
+      "run_twice": true
+    },
+    "expected_criteria": {
+      "identical_outputs": true
+    }
+  },
+  {
+    "test_id": "TC-2-05",
+    "type": "Adversarial",
+    "description": "account_id not in accounts.json \u2192 Graceful fallback",
+    "input": {
+      "account_id": "ACC-0000"
+    },
+    "expected_criteria": {
+      "executive_summary_contains": "Account not found"
+    }
+  }
+]
