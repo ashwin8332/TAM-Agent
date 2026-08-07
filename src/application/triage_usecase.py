@@ -10,6 +10,7 @@ import uuid
 from typing import Any, Dict
 
 from src.ai.graphs.triage_graph import get_triage_graph
+from src.ai.rules import rule_based_category, rule_based_team
 from src.domain.entities import KBMatch, TriageResult
 from src.observability.logger import get_logger
 
@@ -86,14 +87,33 @@ class TriageUseCase:
         # Build KB match — prefer LLM-provided, fall back to top retrieved doc
         kb_match = self._build_kb_match(triage, retrieved)
 
+        # Deterministic rule-based override for category/team: cheap keyword
+        # signals (billing/feature-request/how-to language) are more reliable
+        # than the small local LLM for these classes, and team routing is a
+        # pure function of (category, urgency) per the documented routing
+        # table — no reason to let the LLM re-derive it.
+        issue_category = triage.get("issue_category", "How-To")
+        rule_category = rule_based_category(
+            state.get("ticket_subject", ""), state.get("ticket_body", "")
+        )
+        if rule_category and rule_category != issue_category:
+            logger.info(
+                "Rule-based category override",
+                extra={"request_id": request_id, "llm_category": issue_category, "rule_category": rule_category},
+            )
+            issue_category = rule_category
+
+        urgency_tier = triage.get("urgency_tier", "P3")
+        recommended_team = rule_based_team(issue_category, urgency_tier)
+
         return TriageResult(
             ticket_id=ticket_id,
             product=triage.get("product", "Unknown"),
             product_area=triage.get("product_area", "Unknown"),
-            issue_category=triage.get("issue_category", "How-To"),
-            urgency_tier=triage.get("urgency_tier", "P3"),
+            issue_category=issue_category,
+            urgency_tier=urgency_tier,
             urgency_reasoning=triage.get("urgency_reasoning", ""),
-            recommended_team=triage.get("recommended_team", "Tier-1 Support"),
+            recommended_team=recommended_team,
             kb_match=kb_match,
             draft_first_response=triage.get("draft_first_response", ""),
             classification_reasoning=triage.get("classification_reasoning", ""),
@@ -106,16 +126,26 @@ class TriageUseCase:
 
     @staticmethod
     def _build_kb_match(triage: Dict, retrieved: list) -> KBMatch | None:
+        retrieved_ids = {d.get("doc_id", "") for d in retrieved}
         llm_kb = triage.get("kb_match")
         if llm_kb and isinstance(llm_kb, dict) and llm_kb.get("doc_id"):
-            return KBMatch(
-                doc_id=str(llm_kb.get("doc_id", "")),
-                doc_title=str(llm_kb.get("doc_title", "")),
-                relevant_section=str(llm_kb.get("relevant_section", "")),
-                relevance_score=float(llm_kb.get("relevance_score", 0.0)),
+            claimed_id = str(llm_kb.get("doc_id", ""))
+            # Only trust the LLM's claimed doc_id if it matches something that
+            # was actually retrieved — otherwise it's an unverifiable/hallucinated
+            # reference and we fall back to the top retrieved document instead.
+            if any(claimed_id == rid or claimed_id in rid or rid in claimed_id for rid in retrieved_ids):
+                return KBMatch(
+                    doc_id=claimed_id,
+                    doc_title=str(llm_kb.get("doc_title", "")),
+                    relevant_section=str(llm_kb.get("relevant_section", "")),
+                    relevance_score=float(llm_kb.get("relevance_score", 0.0)),
+                )
+            logger.warning(
+                "LLM kb_match.doc_id not found among retrieved docs — discarding as unverified",
+                extra={"claimed_doc_id": claimed_id, "retrieved_ids": list(retrieved_ids)},
             )
         if retrieved:
-            top = retrieved[0]
+            top = TriageUseCase._best_doc_by_aggregate_score(retrieved)
             return KBMatch(
                 doc_id=top.get("doc_id", ""),
                 doc_title=top.get("title", ""),
@@ -123,3 +153,23 @@ class TriageUseCase:
                 relevance_score=top.get("score", 0.0),
             )
         return None
+
+    @staticmethod
+    def _best_doc_by_aggregate_score(retrieved: list) -> Dict:
+        """
+        Pick the best-matching document by aggregating scores across all
+        retrieved chunks belonging to the same doc_id (sum of similarity
+        scores), rather than trusting a single top chunk. A document that is
+        relevant across multiple chunks should outrank a document that only
+        narrowly edges out on one chunk — this reduces KB-match misses caused
+        by chunk-level score noise.
+        """
+        best_by_doc: Dict[str, Dict] = {}
+        agg_scores: Dict[str, float] = {}
+        for d in retrieved:
+            doc_id = d.get("doc_id", "")
+            agg_scores[doc_id] = agg_scores.get(doc_id, 0.0) + float(d.get("score", 0.0))
+            if doc_id not in best_by_doc or d.get("score", 0.0) > best_by_doc[doc_id].get("score", 0.0):
+                best_by_doc[doc_id] = d
+        best_doc_id = max(agg_scores, key=agg_scores.get)
+        return best_by_doc[best_doc_id]

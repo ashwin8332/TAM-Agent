@@ -23,7 +23,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import src.config as config
-from src.presentation.routers import triage, account, evaluation
+from src.presentation.routers.triage import router as triage_router
+from src.presentation.routers.account import router as account_router
+from src.presentation.routers.evaluation import router as evaluation_router
 from src.presentation.routers.system import router as system_router
 from src.presentation.schemas import HealthResponse
 from src.observability.logger import get_logger
@@ -103,9 +105,9 @@ async def health_check_route():
     }
 
 # Ensure the feature routers are loaded BEFORE the catch-all static serving
-app.include_router(triage.router)
-app.include_router(account.router)
-app.include_router(evaluation.router)
+app.include_router(triage_router)
+app.include_router(account_router)
+app.include_router(evaluation_router)
 app.include_router(system_router)
 
 # Mount Vite Assets

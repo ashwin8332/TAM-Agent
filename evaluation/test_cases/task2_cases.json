@@ -15,7 +15,7 @@
     "type": "Normal",
     "description": "At Risk account \u2192 Risk section non-empty",
     "input": {
-      "account_id": "ACC-6666"
+      "account_id": "ACC-8331"
     },
     "expected_criteria": {
       "risks_and_issues_non_empty": true
