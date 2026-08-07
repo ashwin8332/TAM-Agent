@@ -1,119 +1,217 @@
-# US Delivery Internship — Starter Dataset
+# TAM AI Platform
 
-This repository contains the mock dataset for the **US Delivery Internship Technical Task Round**.  
-Candidates should use this data exclusively for their submissions.
+> **US Delivery Internship — Technical Task Round**
+> Production-grade AI for Technical Support & TAM Teams
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)](https://fastapi.tiangolo.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-orange)](https://langchain-ai.github.io/langgraph)
+[![Ollama](https://img.shields.io/badge/LLM-Ollama-purple)](https://ollama.ai)
 
 ---
 
-## Repository Structure
+## Overview
+
+This platform delivers two AI-powered features:
+
+| Task | Feature | Marks |
+|------|---------|-------|
+| Task 1 | Intelligent Ticket Triage Agent | 30 |
+| Task 2 | TAM Account Health Summariser | 25 |
+| Task 3 | Evaluation Harness | 20 |
+| Task 4 | Design Note | 15 |
+| Bonus | Streaming + UI + CI + Prompt Versioning | 10 |
+
+**Architecture:** LangGraph orchestration · Ollama (local LLM) · FAISS vector store · FastAPI · Domain-Driven Design
+
+---
+
+## Quick Setup
+
+### Prerequisites
+
+```bash
+# 1. Install Ollama
+# https://ollama.ai/download
+
+# 2. Pull required models
+ollama pull qwen2.5
+ollama pull nomic-embed-text
+
+# 3. Start Ollama
+ollama serve
+```
+
+### Installation
+
+```bash
+# From the project root (TAM/ directory)
+pip install -r requirements.txt
+
+# Copy and configure environment
+cp .env.example .env
+# Edit .env if you want to change the model or paths
+
+# Build the FAISS knowledge base index (run once)
+python scripts/build_index.py
+```
+
+### Start the API Server
+
+```bash
+uvicorn src.presentation.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open **http://localhost:8000/docs** for the interactive API documentation.
+
+---
+
+## Sample Run — Task 1 (Ticket Triage)
+
+### Structured JSON input
+
+```bash
+curl -X POST http://localhost:8000/api/v1/triage \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "DataBridge pipeline stopped — ERR_CONNECTION_TIMEOUT",
+    "body": "Hi team,\n\nOur DataBridge Pro Connectors pipeline has been failing since this morning. Error: ERR_CONNECTION_TIMEOUT after 30s. This is impacting 47 users in Engineering. We have tried restarting but the issue persists.\n\nEnvironment: Production\nVersion: 3.1.2",
+    "account_id": "ACC-3847",
+    "plan_tier": "Enterprise"
+  }'
+```
+
+### Plain text input
+
+```bash
+curl -X POST http://localhost:8000/api/v1/triage/text \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Our SSO login is broken. Users are getting SAML_ASSERTION_EXPIRED errors. Nobody can log in to SecureVault. This is blocking our entire team."}'
+```
+
+### Expected output shape
+
+```json
+{
+  "ticket_id": "AUTO-550E8400",
+  "product": "DataBridge Pro",
+  "product_area": "Connectors",
+  "issue_category": "Bug",
+  "urgency_tier": "P2",
+  "urgency_reasoning": "Production pipeline failing with ERR_CONNECTION_TIMEOUT. 47 Engineering users impacted. No workaround available for pipeline processing.",
+  "recommended_team": "Senior Engineering Support",
+  "kb_match": {
+    "doc_id": "products/databridge-pro",
+    "doc_title": "DataBridge Pro — Product Reference",
+    "relevant_section": "Pipeline stopped processing",
+    "relevance_score": 0.92
+  },
+  "draft_first_response": "Hi,\n\nThank you for contacting support...",
+  "classification_reasoning": "ERR_CONNECTION_TIMEOUT in DataBridge Pro Connectors is a known network/source issue. Production impact with 47 users = P2.",
+  "confidence": 0.87,
+  "retrieved_docs": ["products/databridge-pro", "troubleshooting/performance-and-integrations"],
+  "processing_time_ms": 3241.5,
+  "request_id": "550e8400-e29b-41d4-a716-446655440000",
+  "prompt_version": "1.0.0"
+}
+```
+
+### Streaming (SSE)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/triage/stream \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"subject": "Billing question", "body": "Why am I being charged for 50 seats when only 30 users are active?"}'
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Service info |
+| `GET` | `/health` | Health check + index status |
+| `GET` | `/docs` | Interactive Swagger UI |
+| `POST` | `/api/v1/triage` | Structured JSON triage |
+| `POST` | `/api/v1/triage/text` | Plain text triage |
+| `POST` | `/api/v1/triage/stream` | Streaming SSE triage |
+| `POST` | `/api/v1/index/rebuild` | Rebuild FAISS index |
+
+---
+
+## Architecture
 
 ```
-starter-repo/
-├── data/
-│   ├── tickets.json          # 500 synthetic support tickets
-│   └── accounts.json         # 50 synthetic customer account summaries
-├── knowledge-base/
-│   ├── products/
-│   │   ├── databridge-pro.md
-│   │   ├── cloudsync.md
-│   │   ├── analyticshub.md
-│   │   ├── securevault.md
-│   │   └── workflowengine.md
-│   ├── troubleshooting/
-│   │   ├── authentication-sso.md
-│   │   └── performance-and-integrations.md
-│   ├── billing/
-│   │   └── billing-and-plans.md
-│   └── onboarding/
-│       └── onboarding-guide.md
-└── DATA_SCHEMA.md            # Field-level schema documentation
+TAM/
+├── src/
+│   ├── infrastructure/      # Ollama, FAISS, data loaders (replaceable)
+│   ├── domain/              # Pure entities — no infra dependencies
+│   ├── application/         # Use cases — all business logic lives here
+│   ├── ai/
+│   │   ├── graphs/          # LangGraph state machines
+│   │   ├── nodes/           # 9 independently testable pipeline nodes
+│   │   ├── retriever.py     # FAISS retrieval
+│   │   └── output_validator.py  # JSON validation + json-repair
+│   ├── presentation/        # FastAPI routes (thin controllers only)
+│   └── observability/       # Structured JSON logging + tracing
+├── prompts/                 # Versioned prompt templates (.md files)
+├── data/                    # PROVIDED — tickets.json + accounts.json
+├── knowledge-base/          # PROVIDED — 9 KB markdown files
+└── scripts/                 # build_index.py
+```
+
+### LangGraph Pipeline (Task 1)
+
+```
+input_validation → retrieval → context_compression → prompt_construction
+  → llm_generation → output_validation
+    ├── [valid] → confidence_calculation → logging_node → END
+    ├── [retry < MAX] → retry_node → prompt_construction (loop)
+    └── [retries exhausted] → logging_node → END
 ```
 
 ---
 
-## Data Description
+## Switching Models
 
-### `data/tickets.json`
+Change the `MODEL` env var — no code changes needed:
 
-500 synthetic support tickets submitted by fictitious enterprise customers. Each ticket represents a realistic interaction between a customer and the technical support team.
-
-**Key fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ticket_id` | string | Unique ticket identifier (e.g., `TKT-10042`) |
-| `account_id` | string | Links to an account in `accounts.json` |
-| `company` | string | Customer company name |
-| `subject` | string | Ticket subject line |
-| `body` | string | Full ticket body text |
-| `product` | string | Product the ticket relates to |
-| `product_area` | string | Module within the product |
-| `category` | string | Issue type: Bug, Feature Request, How-To, Performance, Billing, Integration, Onboarding, Data Loss |
-| `urgency` | string | P1 (critical) to P4 (low) |
-| `status` | string | Open, In Progress, Pending Customer, Resolved, Closed |
-| `plan_tier` | string | Starter, Professional, Business, Enterprise |
-| `assigned_agent` | string | Support agent name |
-| `created_at` | ISO 8601 | Ticket creation timestamp |
-| `updated_at` | ISO 8601 | Last update timestamp |
-| `tags` | array | Free-form tags |
-| `channel` | string | Submission channel: email, portal, chat, phone |
-| `satisfaction_score` | int\|null | CSAT score 1–5, or null if not submitted |
-
-See [DATA_SCHEMA.md](DATA_SCHEMA.md) for full schema with examples.
+```bash
+MODEL=gemma3        # Google Gemma 3
+MODEL=mistral       # Mistral
+MODEL=llama3.2      # Meta Llama 3.2
+MODEL=qwen2.5       # Qwen 2.5 (default)
+```
 
 ---
 
-### `data/accounts.json`
+## Design Note
 
-50 synthetic customer account summaries, each representing a fictional enterprise customer's relationship with the platform.
-
-**Key fields:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `account_id` | string | Unique account identifier |
-| `company` | string | Company name |
-| `tam` | string | Assigned Technical Account Manager |
-| `plan_tier` | string | Current plan |
-| `arr_usd` | int | Annual recurring revenue in USD |
-| `seats_licensed` | int | Number of licensed seats |
-| `seats_active` | int | Seats with activity in last 30 days |
-| `products` | array | Products in use |
-| `health_status` | string | Healthy, At Risk, Churning, or New |
-| `usage_trend` | string | Increasing, Stable, Declining, or Inactive |
-| `open_tickets` | int | Currently open support tickets |
-| `p1_tickets_last_30d` | int | P1 tickets in last 30 days |
-| `renewal_date` | YYYY-MM-DD | Contract renewal date |
-| `last_qbr_date` | YYYY-MM-DD | Date of last Quarterly Business Review |
-| `escalation_notes` | array | Free-text escalation observations |
-| `nps_score` | int\|null | Net Promoter Score 1–10, or null |
-| `primary_contact` | object | `name` and `title` of main contact |
-| `integrations_active` | array | Active third-party integrations |
-| `region` | string | Geographic region |
-| `industry` | string | Customer industry vertical |
+See [DESIGN_NOTE.md](DESIGN_NOTE.md) for the ~600-word engineering design note covering:
+- Failure modes & mitigations
+- Latency vs quality trade-offs
+- PII handling
+- Scaling to 10× ticket volume
 
 ---
 
-### `knowledge-base/`
+## Evaluation
 
-Markdown documentation files representing a product knowledge base. These docs contain:
-
-- Product feature descriptions and configuration references
-- Common error codes and their meanings
-- Step-by-step troubleshooting guides
-- Plan limits and pricing information
-- Onboarding checklists and training paths
-
-Candidates should use these docs as the retrieval corpus for knowledge-base lookup features.
+```bash
+python evaluation/run_eval.py
+# Outputs: eval_report.json + eval_report.md
+```
 
 ---
 
-## Usage Notes
+## Environment Variables
 
-- All data is **entirely synthetic**. Company names, contact details, and ticket content are fictional.
-- Ticket `account_id` values do not always match an entry in `accounts.json` — this is intentional. Handle missing account lookups gracefully.
-- The `escalation_notes` field in accounts contains plain-text observations. These are designed to test churn-risk signal detection.
-- Some tickets are deliberately ambiguous in category or urgency — this tests edge-case handling.
+See [`.env.example`](.env.example) for all required variables.
+
+**Never commit `.env` to version control.**
 
 ---
 
+*Built for the US Delivery Internship Technical Task Round.*
