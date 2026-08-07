@@ -86,6 +86,29 @@ class TriageResultResponse(BaseModel):
         }
 
 
+class AccountBriefResponse(BaseModel):
+    account_id: str
+    executive_summary: str
+    risks_and_issues: str
+    talking_points: str
+    churn_risk_flags: List[str] = []
+    request_id: str
+    processing_time_ms: float
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "account_id": "ACC-3847",
+                "executive_summary": "Account is experiencing stability issues with their primary product.",
+                "risks_and_issues": "2 P1 tickets in the last 30 days related to timeouts.",
+                "talking_points": "Discuss the upcoming patch and offer a credit for downtime.",
+                "churn_risk_flags": ["Mentioned 'evaluating alternatives' in a ticket"],
+                "request_id": "550e8400-e29b-41d4-a716-446655440001",
+                "processing_time_ms": 1520.5,
+            }
+        }
+
+
 class HealthResponse(BaseModel):
     status: str
     model: str

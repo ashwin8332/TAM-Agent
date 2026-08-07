@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import src.config as config
 from src.presentation.routers.triage import router as triage_router
+from src.presentation.routers.account import router as account_router
 from src.presentation.routers.system import router as system_router
 from src.presentation.schemas import HealthResponse
 from src.observability.logger import get_logger
@@ -56,6 +57,7 @@ app = FastAPI(
     description=(
         "**Production-grade AI for Technical Support & TAM Teams**\n\n"
         "- **Task 1** — Intelligent Ticket Triage: `/api/v1/triage`\n"
+        "- **Task 2** — TAM Account Health Summariser: `/api/v1/account/{account_id}/brief`\n"
         "- **Streaming** — SSE streaming: `/api/v1/triage/stream`\n"
         "- **Health** — `/health`\n\n"
         "Powered by LangGraph + Ollama + FAISS."
@@ -103,6 +105,7 @@ async def health_check_route():
 
 # Ensure the feature routers are loaded BEFORE the catch-all static serving
 app.include_router(triage_router)
+app.include_router(account_router)
 app.include_router(system_router)
 
 # Mount Vite Assets

@@ -181,7 +181,7 @@ curl -X POST http://localhost:8050/api/v1/triage \
 ---
 
 ### TASK 2 — TAM Account Health Summariser (25 marks)
-**Status:** `[ ] Not Started`
+**Status:** `[x] Completed`
 
 **Input:** `account_id`
 **Output:** 3-section brief (deterministic)
@@ -194,12 +194,12 @@ Section 3: Recommended Talking Points for TAM
 ```
 
 **Subtasks:**
-- `[ ]` `GET /api/v1/account/{account_id}/brief`
-- `[ ]` Pull account summary + last 90 days of tickets from mock dataset
-- `[ ]` Multi-doc summarisation with prompt chaining (LangGraph)
-- `[ ]` Deterministic output (temperature=0, seed=42)
-- `[ ]` Churn risk detection with quote attribution
-- `[ ]` Reuse Task 1 LangGraph graph structure
+- `[x]` `GET /api/v1/account/{account_id}/brief`
+- `[x]` Pull account summary + last 90 days of tickets from mock dataset (Using in-memory SQLite)
+- `[x]` Multi-doc summarisation with prompt chaining (LangGraph)
+- `[x]` Deterministic output (temperature=0, seed=42)
+- `[x]` Churn risk detection with quote attribution
+- `[x]` Reuse Task 1 LangGraph graph structure
 
 ---
 
