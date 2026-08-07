@@ -157,6 +157,27 @@ TAM/
 - `[ ]` Confidence scoring
 - `[ ]` Streaming response support (+3 bonus marks)
 
+**Command to Run Backend AI Agent (Task 1):**
+```bash
+# Ensure project root is in PYTHONPATH
+$env:PYTHONPATH = "C:\Users\hp\OneDrive\Desktop\TAM"
+
+# Start the FastAPI uvicorn server on port 8050
+python -m uvicorn src.presentation.main:app --host 0.0.0.0 --port 8050
+```
+
+**Command to Test/Invoke Triage Agent:**
+```bash
+curl -X POST http://localhost:8050/api/v1/triage \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "DataBridge pipeline stopped — ERR_CONNECTION_TIMEOUT",
+    "body": "Hi team,\n\nOur DataBridge Pro Connectors pipeline has been failing since this morning. Error: ERR_CONNECTION_TIMEOUT after 30s. This is impacting 47 users in Engineering. We have tried restarting but the issue persists.",
+    "account_id": "ACC-3847",
+    "plan_tier": "Enterprise"
+  }'
+```
+
 ---
 
 ### TASK 2 — TAM Account Health Summariser (25 marks)
@@ -618,6 +639,45 @@ cd frontend
 npm run build
 ```
 Once built, you only need to run the Uvicorn backend, and the fully integrated UI will be accessible at `http://localhost:8050/`.
+
+### 4. Troubleshooting & Common Issues
+
+If you run into issues while running the backend or frontend:
+
+#### A. `ModuleNotFoundError` (Missing Dependencies)
+If you get `ModuleNotFoundError: No module named '...'` when running Uvicorn:
+* Ensure your virtual environment is activated (if applicable).
+* Run the following command from the project root to install dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+#### B. `[Errno 10048] address already in use` (Port 8050 Blocked)
+If you see `[WinError 10048] only one usage of each socket address is normally permitted`:
+* Another process (such as a previous orphaned Uvicorn run) is already listening on port `8050`.
+* To locate and terminate the process on Windows:
+  1. Run `netstat -ano | findstr 8050` in PowerShell or Command Prompt. The last number in the output is the Process ID (PID).
+  2. Kill the process:
+     ```cmd
+     taskkill /F /PID <PID>
+     ```
+  3. Alternatively, you can start the backend on a different port (e.g., `--port 8080`) and change the target URL in `frontend/vite.config.js`.
+
+#### C. `HTTP Error 502 / 504 / Connection Timeout`
+If the frontend UI shows a `502 Bad Gateway` or `504 Gateway Timeout` when triaging a ticket:
+* Since Ollama runs on CPU on many local developer machines, executing the full RAG pipeline + LLM generation can take **1.5 to 2 minutes** per request.
+* The default proxy timeout on Vite is too short, causing it to throw a 502 before the backend completes.
+* **Fix:** We have configured a 5-minute proxy timeout in `frontend/vite.config.js`. Ensure you restart the Vite dev server (`npm run dev`) after making this change. Also, allow up to 2 minutes for the response to load.
+
+#### D. Ollama Connection / Model Errors
+If the backend logs show errors connecting to Ollama or complain about a missing model:
+* Ensure the Ollama application is running (`ollama serve` or start the Ollama desktop app).
+* Verify that the service is running by navigating to `http://localhost:11434` in your browser.
+* Ensure you have pulled the required models:
+  ```bash
+  ollama pull qwen2.5:1.5b
+  ollama pull nomic-embed-text
+  ```
 
 ---
 

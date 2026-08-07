@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import src.config as config
 from src.presentation.routers.triage import router as triage_router
+from src.presentation.routers.system import router as system_router
 from src.presentation.schemas import HealthResponse
 from src.observability.logger import get_logger
 
@@ -102,6 +103,7 @@ async def health_check_route():
 
 # Ensure the feature routers are loaded BEFORE the catch-all static serving
 app.include_router(triage_router)
+app.include_router(system_router)
 
 # Mount Vite Assets
 if os.path.exists(_REACT_BUILD_DIR):

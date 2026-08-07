@@ -1,0 +1,6 @@
+{
+  "subject": "SSO failure",
+  "body": "Users get SAML_ASSERTION_EXPIRED when trying to log in.",
+  "account_id": "ACC-123",
+  "plan_tier": "Enterprise"
+}
