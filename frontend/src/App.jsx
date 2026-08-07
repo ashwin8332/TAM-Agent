@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Activity, TicketCheck, Building2, TestTube2 } from 'lucide-react';
+import { Activity, TicketCheck, Building2, TestTube2, Info } from 'lucide-react';
 import TriageTab from './components/TriageTab';
 import DashboardTab from './components/DashboardTab';
 import AccountBriefTab from './components/AccountBriefTab';
 import EvaluationTab from './components/EvaluationTab';
+import AboutTab from './components/AboutTab';
 
 const NAV_ITEMS = [
   { key: 'triage', label: 'Ticket Triage', task: 'Task 1', icon: TicketCheck },
   { key: 'account', label: 'Account Briefs', task: 'Task 2', icon: Building2 },
   { key: 'evaluation', label: 'Evaluation Harness', task: 'Task 3', icon: TestTube2 },
   { key: 'dashboard', label: 'System Dashboard', task: 'Bonus', icon: Activity },
+  { key: 'about', label: 'About & Blueprint', task: 'Docs', icon: Info },
 ];
 
 function App() {
@@ -72,6 +74,7 @@ function App() {
           {activeTab === 'dashboard' && <DashboardTab />}
           {activeTab === 'account' && <AccountBriefTab />}
           {activeTab === 'evaluation' && <EvaluationTab />}
+          {activeTab === 'about' && <AboutTab />}
         </main>
       </div>
     </div>
