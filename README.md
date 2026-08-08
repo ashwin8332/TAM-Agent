@@ -106,7 +106,9 @@ graph LR
 
 ## ⚡ LangGraph AI Pipelines
 
-### Task 1: Intelligent Ticket Triage Flow
+This section covers only the AI workflows implemented as LangGraph state machines. The evaluation harness and bonus system dashboard are documented separately because they validate and monitor the platform rather than define LangGraph pipeline logic.
+
+### Intelligent Ticket Triage Graph
 
 The triage workflow automates ticket classification through a multi-step LangGraph state machine. Raw tickets undergo validation, context retrieval, and LLM-powered generation with built-in failure recovery.
 
@@ -154,7 +156,7 @@ graph TD
 }
 ```
 
-### Task 2: Account Health Summarizer
+### Account Health Brief Graph
 
 The account brief pipeline performs multi-document analysis to synthesize customer health signals, churn indicators, and strategic recommendations.
 
