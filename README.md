@@ -2,7 +2,6 @@
 
 > **US Delivery Internship — Technical Task Round**  
 > Production-grade AI for Technical Support & TAM Teams
-
 [![Python](https://img.shields.io/badge/Python-3.10+-blue)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)](https://fastapi.tiangolo.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2-orange)](https://langchain-ai.github.io/langgraph)
